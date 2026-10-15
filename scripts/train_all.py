@@ -109,55 +109,69 @@ def main():
                     rows.append(dict(row_index=i, moc=f"{mo}M", egfr_thuc=B[sp]["y"][i, j], egfr_du_doan=pred[sp][i, j]))
         pd.DataFrame(rows).to_csv(C.REPORT_DIR / f"predictions_{sp}.csv", index=False)
 
-    # ---------------- GMM ----------------
+    # ---------------- GMM (giai đoạn 2: dựa trên dự đoán của GRU) ----------------
     masked = {k: mask_fill(v, prep.fill_consts) for k, v in splits.items()}
-    X = {k: G.features(B[k]["hist"]) for k in B}
-    scaler, gm, sel, (K, cov) = G.select_and_fit(X["train"], X["val"])
+    FT = {k: G.trajectory_features(B[k]["hist"], pred[k]) for k in B}
+    X = {k: FT[k][0] for k in B}
+    DET = {k: FT[k][1] for k in B}
+    K = G.K
+    scaler, gm, sel, cov = G.select_and_fit(X["train"], X["val"])
     sel.to_csv(C.REPORT_DIR / "gmm_model_selection.csv", index=False)
-    perm = G.order_by_slope(gm, scaler)
-    ari_mean, ari_min = G.stability(scaler.transform(X["train"]), K, cov)
+    perm = G.order_by_total_slope(gm, scaler, X["train"])
+    ari_mean, ari_min = G.stability(scaler.transform(X["train"]), cov)
     prof, gmm_rows, assign_all = [], [], {}
     for k in B:
         lab, pr = G.assign(gm, scaler, perm, X[k])
         assign_all[k] = (lab, pr)
-        p = G.profile(masked[k], lab, pr)
+        p = G.profile(masked[k], lab, X[k], DET[k])
         p.insert(0, "Tap", k)
         prof.append(p)
         z = scaler.transform(X[k])
         gmm_rows.append(dict(Tap=k, N=len(z), loglik_mean=gm.score(z), AIC=gm.aic(z), BIC=gm.bic(z)))
-    pd.concat(prof).to_csv(C.REPORT_DIR / "gmm_cluster_profile.csv", index=False, encoding="utf-8-sig")
+    profile_df = pd.concat(prof)
+    profile_df.to_csv(C.REPORT_DIR / "gmm_cluster_profile.csv", index=False, encoding="utf-8-sig")
     gdf = pd.DataFrame(gmm_rows)
     gdf["K"], gdf["covariance"], gdf["ARI_on_restart_mean"], gdf["ARI_on_restart_min"] = K, cov, ari_mean, ari_min
     gdf.to_csv(C.REPORT_DIR / "gmm_metrics.csv", index=False)
-    log.info("GMM chọn K=%d cov=%s (theo log-likelihood Validation); ARI khởi tạo lại: mean=%.3f min=%.3f", K, cov, ari_mean, ari_min)
+    log.info("GMM K=%d, covariance=%s (chọn theo log-likelihood Validation); ARI khởi tạo lại: mean=%.3f min=%.3f",
+             K, cov, ari_mean, ari_min)
+    for _, r in profile_df[profile_df.Tap == "train"].iterrows():
+        log.info("Train nhóm %d %-16s N=%d độ dốc tổng TB=%.2f", r.Nhom, r.Ten, r.N, r.do_doc_tong_tb)
 
     # ---------------- Lưu artifact ----------------
     torch.save({"state_dict": model.state_dict(), "hp": best_hp, "n_static": prep.n_static if uc else 0,
                 "seed": seed_used}, C.ARTIFACT_DIR / "gru_model.pt")
     joblib.dump(prep, C.ARTIFACT_DIR / "preprocessor.joblib")
-    joblib.dump({"scaler": scaler, "gmm": gm, "perm": perm, "K": K, "covariance": cov}, C.ARTIFACT_DIR / "gmm_model.joblib")
-    cl = {lab: {"mean": X["train"][assign_all["train"][0] == lab].mean(0).tolist()} for lab in range(K)}
+    joblib.dump({"scaler": scaler, "gmm": gm, "perm": perm, "K": K, "covariance": cov,
+                 "names": G.CLUSTER_NAMES}, C.ARTIFACT_DIR / "gmm_model.joblib")
     meta = {
         "versions": {"torch": torch.__version__, "sklearn": sklearn.__version__, "numpy": np.__version__},
         "history_months": C.HIST_MONTHS, "future_months": C.FUT_MONTHS,
         "use_clinical": uc, "hyperparameters": best_hp, "selected_seed": seed_used,
         "best_epoch": info["best_epoch"], "n_search_trials": len(configs),
-        "gmm": {"K": K, "covariance": cov, "features": G.FEATURE_NAMES},
+        "gmm": {"K": K, "covariance": cov, "features": G.FEATURE_NAMES, "cluster_names": G.CLUSTER_NAMES},
         "clinical_columns": C.CLINICAL_COLS, "input_ranges": prep.ranges,
         "etiology_levels": prep.etio_levels, "fill_constants": prep.fill_consts,
         "rows": {k: int(len(v)) for k, v in splits.items()},
     }
     (C.ARTIFACT_DIR / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), "utf-8")
 
+    # quỹ đạo trung bình theo nhóm: đã đo (lịch sử) / GRU dự đoán / thực tế tương lai (chỉ để đối chiếu)
     traj = []
     for sp in B:
-        arr, lb = masked[sp][C.EGFR_COLS].to_numpy(), assign_all[sp][0]
+        lb = assign_all[sp][0]
+        hist, fut = B[sp]["hist"], B[sp]["y"]
         for k_ in range(K):
-            for j, mo in enumerate(C.MONTHS):
-                v = arr[lb == k_, j]
+            m = lb == k_
+            def add(kind, mo, v):
                 v = v[~np.isnan(v)]
-                traj.append(dict(Tap=sp, Nhom=k_ + 1, thang=mo, n_quan_sat=len(v),
-                                 egfr_tb=float(v.mean()) if len(v) else None, egfr_sd=float(v.std()) if len(v) else None))
+                traj.append(dict(Tap=sp, Nhom=k_ + 1, Ten=G.CLUSTER_NAMES[k_], loai=kind, thang=mo, n=len(v),
+                                 egfr_tb=float(v.mean()) if len(v) else None))
+            for j, mo in enumerate(C.HIST_MONTHS):
+                add("da_do", mo, hist[m, j])
+            for j, mo in enumerate(C.FUT_MONTHS):
+                add("du_doan_GRU", mo, pred[sp][m, j])
+                add("thuc_te", mo, fut[m, j])
     pd.DataFrame(traj).to_csv(C.REPORT_DIR / "gmm_cluster_trajectories.csv", index=False)
 
     # ---------------- Biểu đồ ----------------
@@ -187,28 +201,36 @@ def main():
     ax.set(title="MAE trên Test theo mốc dự đoán", ylabel="MAE"); ax.legend(fontsize=8)
     fig.tight_layout(); fig.savefig(C.FIG_DIR / "03_mae_by_horizon_test.png"); plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    for k_, g in sel[sel.eligible].groupby("covariance"):
-        ax.plot(g.K, g.train_BIC, marker="o", label=k_)
-    ax.axvline(K, ls="--", c="gray"); ax.set(title="BIC trên Train theo số thành phần K", xlabel="K", ylabel="BIC"); ax.legend()
-    fig.tight_layout(); fig.savefig(C.FIG_DIR / "04_gmm_bic.png"); plt.close(fig)
+    fig, ax = plt.subplots(figsize=(6.5, 3.8))
+    ax.bar(sel.covariance, sel.val_loglik_mean, color=["#0b7a75" if c == cov else "#9fb0be" for c in sel.covariance])
+    ax.set(title="GMM K=3: log-likelihood trung bình trên Validation", ylabel="log-likelihood")
+    fig.tight_layout(); fig.savefig(C.FIG_DIR / "04_gmm_covariance_selection.png"); plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    allm = np.array(C.MONTHS)
-    lab = assign_all["train"][0]
-    tr_all = masked["train"][C.EGFR_COLS].to_numpy()
+    tj = pd.DataFrame(traj)
+    tj = tj[tj.Tap == "test"]
+    colors = ["#b3261e", "#6b7280", "#1b7f3b"]
+    fig, ax = plt.subplots(figsize=(8.5, 4.6))
     for k_ in range(K):
-        mean = np.nanmean(tr_all[lab == k_], 0)
-        ax.plot(allm, mean, marker="o", label=f"Nhóm {k_+1} (n={int((lab==k_).sum())})")
-    ax.axvline(12.5, ls=":", c="k"); ax.text(13, ax.get_ylim()[1] * .97, "← lịch sử | tương lai (chỉ để mô tả) →", fontsize=8, va="top")
-    ax.set(title="eGFR trung bình theo nhóm GMM (Train, chỉ tính mốc đã quan sát)", xlabel="Tháng", ylabel="eGFR"); ax.legend()
+        d = tj[tj.Nhom == k_ + 1]
+        n_k = int(d[d.loai == "da_do"].n.max())
+        a_ = d[d.loai == "da_do"]; b_ = d[d.loai == "du_doan_GRU"]; c_ = d[(d.loai == "thuc_te") & (d.n >= 5)]
+        ax.plot(a_.thang, a_.egfr_tb, "o-", c=colors[k_], label=f"{G.CLUSTER_NAMES[k_]} (n={n_k})")
+        ax.plot([a_.thang.iloc[-1], *b_.thang], [a_.egfr_tb.iloc[-1], *b_.egfr_tb], "o--", c=colors[k_])
+        ax.plot(c_.thang, c_.egfr_tb, "x:", c=colors[k_], alpha=.7)
+    ax.axvline(12.5, ls=":", c="k")
+    ax.set(title="eGFR trung bình theo nhóm (Test): liền = đã đo, đứt = GRU dự đoán, chấm × = thực tế (n≥5)",
+           xlabel="Tháng", ylabel="eGFR")
+    ax.title.set_fontsize(9); ax.legend()
     fig.tight_layout(); fig.savefig(C.FIG_DIR / "05_gmm_cluster_trajectories.png"); plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(6, 5))
-    z = scaler.transform(X["train"])
-    sc = ax.scatter(X["train"][:, 0], X["train"][:, 2], c=lab, cmap="tab10", s=12, alpha=.7)
-    ax.set(title="Phân nhóm GMM (Train)", xlabel=G.FEATURE_NAMES[0], ylabel="Độ dốc (mL/ph/1.73m²/năm)")
-    fig.tight_layout(); fig.savefig(C.FIG_DIR / "06_gmm_scatter.png"); plt.close(fig)
+    fig, ax = plt.subplots(figsize=(7, 4))
+    lab = assign_all["train"][0]
+    bins = np.linspace(np.percentile(X["train"][:, 0], 1), np.percentile(X["train"][:, 0], 99), 40)
+    for k_ in range(K):
+        ax.hist(X["train"][lab == k_, 0], bins=bins, alpha=.65, color=colors[k_], label=f"{G.CLUSTER_NAMES[k_]} (n={int((lab==k_).sum())})")
+    ax.set(title="Phân bố độ dốc eGFR toàn quỹ đạo theo nhóm GMM (Train)", xlabel=G.FEATURE_NAMES[0], ylabel="Số bệnh nhân")
+    ax.title.set_fontsize(10); ax.legend()
+    fig.tight_layout(); fig.savefig(C.FIG_DIR / "06_gmm_slope_distribution.png"); plt.close(fig)
 
     log.info("XONG sau %.1f phút", (time.time() - t0) / 60)
 

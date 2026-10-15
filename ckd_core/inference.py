@@ -12,6 +12,7 @@ import torch
 from . import config as C
 from . import gmm as G
 from . import gru as R
+from .guidance import CLUSTER_NOTES, GUIDANCE, stage_from_egfr
 
 EGFR_KEYS = {"0M": "eGFR(0M)", "6M": "eGFR(6M)", "12M": "eGFR(12M)"}
 HARD_EGFR = (0.0, 200.0)
@@ -41,6 +42,7 @@ class Engine:
             self.gru.eval()
             g = joblib.load(C.ARTIFACT_DIR / "gmm_model.joblib")
             self.scaler, self.gmm, self.perm, self.K = g["scaler"], g["gmm"], g["perm"], g["K"]
+            self.names = g["names"]
             prof = pd.read_csv(C.REPORT_DIR / "gmm_cluster_profile.csv")
             self.profile = prof[prof.Tap == "train"].set_index("Nhom")
             self.ready = True
@@ -103,26 +105,33 @@ class Engine:
 
     # ---------- suy luận ----------
     def predict(self, payload: dict) -> dict:
+        """Giai đoạn 1: GRU dự đoán eGFR 18–36M. Giai đoạn 2: GMM phân nhóm xu hướng từ tiền sử + dự đoán GRU."""
         if not self.ready:
             raise ModelNotReady("Mô hình chưa sẵn sàng: chưa có artifact đã huấn luyện.")
         row, warns = self._row(payload)
-        df = pd.DataFrame([row])
-        b = self.prep.transform(df, apply_fill=False)
-        pred = R.predict(self.gru, b, self.prep, self.use_clinical)[0]
-        feats = G.features(b["hist"])
-        z = self.scaler.transform(feats)
-        probs = self.gmm.predict_proba(z)[:, self.perm][0]
+        b = self.prep.transform(pd.DataFrame([row]), apply_fill=False)
+        pred = R.predict(self.gru, b, self.prep, self.use_clinical)          # (1,4)
+        feats, detail = G.trajectory_features(b["hist"], pred)
+        probs = self.gmm.predict_proba(self.scaler.transform(feats))[:, self.perm][0]
         k = int(probs.argmax())
         n_obs = int((~np.isnan(b["hist"][0])).sum())
         if n_obs < 2:
-            warns.append("Chỉ có 1 mốc eGFR lịch sử: độ dốc được đặt = 0, phân nhóm GMM kém tin cậy.")
+            warns.append("Chỉ có 1 mốc eGFR lịch sử: xu hướng chủ yếu dựa trên dự đoán của GRU, phân nhóm kém tin cậy hơn.")
         prof = self.profile.loc[k + 1].to_dict() if (k + 1) in self.profile.index else {}
+        forecast = [{"month": m, "egfr": float(p), "stage": stage_from_egfr(float(p))} for m, p in zip(C.FUT_MONTHS, pred[0])]
+        final_stage = forecast[-1]["stage"]
         return {
             "history": {m: (None if np.isnan(row[c]) else float(row[c])) for m, c in EGFR_KEYS.items()},
-            "forecast": [{"month": m, "egfr": float(p)} for m, p in zip(C.FUT_MONTHS, pred)],
+            "forecast": forecast,
+            "final_stage": final_stage,
+            "guidance": {"stage": final_stage, **GUIDANCE[final_stage]},
             "gmm": {
-                "cluster": k + 1, "probabilities": [float(p) for p in probs],
+                "cluster": k + 1, "name": self.names[k], "note": CLUSTER_NOTES[self.names[k]],
+                "names": list(self.names), "probabilities": [float(p) for p in probs],
                 "features": {n: float(v) for n, v in zip(G.FEATURE_NAMES, feats[0])},
+                "total_slope": float(feats[0, 0]),
+                "history_slope": None if np.isnan(detail[0, 0]) else float(detail[0, 0]),
+                "forecast_slope": float(detail[0, 1]),
                 "profile": {kk: (None if (isinstance(vv, float) and math.isnan(vv)) else vv) for kk, vv in prof.items()},
             },
             "warnings": warns,
@@ -136,7 +145,7 @@ class Engine:
             try:
                 res = self.predict(payload)
                 out.append({"row": i + 1, "ok": True, **{f"eGFR_{f['month']}M_du_doan": round(f["egfr"], 2) for f in res["forecast"]},
-                            "nhom_gmm": res["gmm"]["cluster"], "canh_bao": "; ".join(res["warnings"])})
+                            "giai_doan_36M": res["final_stage"], "nhom_gmm": res["gmm"]["name"], "canh_bao": "; ".join(res["warnings"])})
             except InputError as e:
                 out.append({"row": i + 1, "ok": False, "loi": str(e)})
         return out

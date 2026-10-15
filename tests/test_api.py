@@ -39,6 +39,37 @@ def test_predict_ok():
     assert [f["month"] for f in j["forecast"]] == [18, 24, 30, 36]
     assert all(0 <= f["egfr"] < 200 for f in j["forecast"])
     assert abs(sum(j["gmm"]["probabilities"]) - 1) < 1e-6
+    assert j["gmm"]["name"] in {"Chuyển biến xấu", "Ổn định", "Cải thiện"}
+    assert j["gmm"]["names"] == ["Chuyển biến xấu", "Ổn định", "Cải thiện"]
+    assert j["final_stage"] == j["forecast"][-1]["stage"] == j["guidance"]["stage"]
+    assert j["guidance"]["goals"] and j["guidance"]["dietary_focus"]
+
+
+def test_stage_rule_thresholds():
+    from ckd_core.guidance import stage_from_egfr
+    cases = [(120, "Giai đoạn 1"), (90, "Giai đoạn 1"), (89.9, "Giai đoạn 2"), (60, "Giai đoạn 2"), (59.9, "Giai đoạn 3a"),
+             (45, "Giai đoạn 3a"), (44.9, "Giai đoạn 3b"), (30, "Giai đoạn 3b"), (29.9, "Giai đoạn 4"),
+             (15, "Giai đoạn 4"), (14.9, "Giai đoạn 5"), (0, "Giai đoạn 5")]
+    for v, st in cases:
+        assert stage_from_egfr(v) == st, v
+
+
+def test_gmm_uses_gru_prediction_not_future_truth():
+    """Phân nhóm chỉ phụ thuộc đầu vào người dùng nhập (không có đường nào đưa eGFR tương lai thật vào)."""
+    import copy
+    a = client.post("/api/predict", json=GOOD).json()
+    p2 = copy.deepcopy(GOOD)
+    p2["egfr"]["12M"] = 20.0   # lịch sử khác -> dự đoán và độ dốc khác
+    b = client.post("/api/predict", json=p2).json()
+    assert a["gmm"]["total_slope"] != b["gmm"]["total_slope"]
+
+
+def test_figure_endpoint_whitelist():
+    assert client.get("/api/figures").json()["figures"]
+    name = client.get("/api/figures").json()["figures"][0]
+    assert client.get(f"/api/figure/{name}").headers["content-type"] == "image/png"
+    assert client.get("/api/figure/..%2Fmeta.json").status_code == 404
+    assert client.get("/api/figure/nope.png").status_code == 404
 
 
 def test_pipeline_consistency_with_batch_eval():

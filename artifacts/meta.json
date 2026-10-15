@@ -32,11 +32,14 @@
   "n_search_trials": 30,
   "gmm": {
     "K": 3,
-    "covariance": "full",
+    "covariance": "tied",
     "features": [
-      "eGFR ban đầu (0M)",
-      "eGFR gần nhất (≤12M)",
-      "Độ dốc eGFR 0–12M (mL/ph/1.73m²/năm)"
+      "Độ dốc eGFR toàn quỹ đạo: đã đo + GRU dự đoán (mL/ph/1.73m²/năm)"
+    ],
+    "cluster_names": [
+      "Chuyển biến xấu",
+      "Ổn định",
+      "Cải thiện"
     ]
   },
   "clinical_columns": [

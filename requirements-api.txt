@@ -1,4 +1,4 @@
-# Môi trường SUY LUẬN (backend). Không có matplotlib/pytest. Phiên bản khớp artifact đã huấn luyện.
+# Môi trường SUY LUẬN + API đa người dùng (backend). Phiên bản khớp artifact đã huấn luyện.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.14.1
 numpy==2.5.4
@@ -9,3 +9,8 @@ joblib==1.6.0
 fastapi==0.143.1
 uvicorn==0.54.0
 python-multipart==0.0.32
+SQLAlchemy==2.1.4
+alembic==1.20.0
+argon2-cffi==25.1.0
+email-validator==2.3.0
+psycopg[binary]==3.3.6

@@ -16,10 +16,11 @@ sys.path.insert(0, str(ROOT))
 import pandas as pd  # noqa: E402
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from ckd_core import config as C  # noqa: E402
+from ckd_core.guidance import GUIDANCE  # noqa: E402
 from ckd_core.inference import Engine, InputError, ModelNotReady  # noqa: E402
 
 log = logging.getLogger("ckd-api")
@@ -66,6 +67,7 @@ def meta():
         "clinical_columns": m["clinical_columns"] if m["use_clinical"] else [],
         "input_ranges": m["input_ranges"], "etiology_levels": m["etiology_levels"],
         "hyperparameters": m["hyperparameters"], "gmm": m["gmm"], "rows": m["rows"],
+        "guidance": GUIDANCE,
     }
 
 
@@ -82,6 +84,19 @@ def results():
         "gmm_trajectories": _read_csv("gmm_cluster_trajectories.csv"),
         "data_audit": json.loads(audit.read_text("utf-8")) if audit.exists() else None,
     }
+
+
+@app.get("/api/figures")
+def figures():
+    return {"figures": sorted(f.name for f in C.FIG_DIR.glob("*.png"))}
+
+
+@app.get("/api/figure/{name}")
+def figure(name: str):
+    p = C.FIG_DIR / name
+    if "/" in name or "\\" in name or p.suffix != ".png" or not p.is_file():   # chỉ cho phép ảnh trong reports/figures
+        raise HTTPException(404, "Không tìm thấy biểu đồ.")
+    return FileResponse(p, media_type="image/png")
 
 
 @app.post("/api/predict")

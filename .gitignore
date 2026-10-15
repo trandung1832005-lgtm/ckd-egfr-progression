@@ -11,3 +11,12 @@ reports/predictions_*.csv
 # Repo tham khảo (122 MB, vượt giới hạn 100 MB/file nếu lỡ commit)
 CKD-Stage-Prediction-and-Treatment-AI-main/
 .env
+
+# Cơ sở dữ liệu cục bộ, log, build
+var/
+*.db
+frontend/node_modules/
+frontend/.next/
+frontend/.env*
+!frontend/.env.example
+!.env.example

@@ -7,3 +7,5 @@ CKD-Stage-Prediction-and-Treatment-AI-main
 reports/figures
 reports/predictions_*.csv
 **/__pycache__
+frontend
+var

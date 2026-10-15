@@ -1,14 +1,5 @@
 # Môi trường HUẤN LUYỆN + kiểm thử (đầy đủ). Python 3.12.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.14.1
-numpy==2.5.4
-pandas==3.0.6
-scikit-learn==1.9.1
-scipy==1.18.1
-joblib==1.6.0
+-r requirements-api.txt
 matplotlib==3.11.2
-fastapi==0.143.1
-uvicorn==0.54.0
-python-multipart==0.0.32
 pytest==9.1.1
 httpx==0.28.1

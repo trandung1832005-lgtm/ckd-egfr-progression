@@ -5,5 +5,25 @@ services:
     plan: free
     healthCheckPath: /api/health
     envVars:
+      - key: APP_ENV
+        value: prod
+      - key: SECRET_KEY
+        generateValue: true            # Render tự sinh chuỗi ngẫu nhiên đủ mạnh
+      - key: DATABASE_URL
+        sync: false                    # dán chuỗi kết nối PostgreSQL (Neon/Supabase/Render Postgres) trong dashboard
+      - key: TRUSTED_PROXY_HOPS
+        value: "2"                     # Vercel -> Render: tin 2 lớp proxy khi lấy IP khách
+      - key: FRONTEND_URL
+        sync: false                    # URL Vercel, ví dụ https://ten-du-an.vercel.app
       - key: ALLOWED_ORIGINS
-        value: https://<ten-du-an>.vercel.app   # thay bằng URL Vercel thật sau khi deploy frontend
+        sync: false                    # thường trùng FRONTEND_URL
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
