@@ -1,0 +1,42 @@
+2026-10-15 18:05:07,735 Hằng số điền thiếu phát hiện trên Train: {'eGFR(6M)': 30.455073, 'eGFR(12M)': 30.937709, 'eGFR(18M)': 31.267558, 'eGFR(24M)': 30.700429, 'eGFR(30M)': 31.201121, 'eGFR(36M)': 32.170319}
+2026-10-15 18:05:07,743 train: 796 dòng, 510 dòng có >=1 mốc đích quan sát (dùng để tính chỉ số)
+2026-10-15 18:05:07,747 val: 171 dòng, 112 dòng có >=1 mốc đích quan sát (dùng để tính chỉ số)
+2026-10-15 18:05:07,750 test: 171 dòng, 100 dòng có >=1 mốc đích quan sát (dùng để tính chỉ số)
+2026-10-15 18:05:16,032 [1/30] val_MAE=4.684 ep=10 {'use_clinical': True, 'hidden': 16, 'layers': 2, 'static_dim': 8, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.003, 'weight_decay': 0.0, 'batch_size': 32}
+2026-10-15 18:05:17,965 [2/30] val_MAE=4.737 ep=7 {'use_clinical': False, 'hidden': 16, 'layers': 1, 'static_dim': 8, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.003, 'weight_decay': 0.001, 'batch_size': 32}
+2026-10-15 18:05:22,721 [3/30] val_MAE=4.605 ep=56 {'use_clinical': True, 'hidden': 64, 'layers': 2, 'static_dim': 8, 'head_dim': 32, 'dropout': 0.2, 'lr': 0.0003, 'weight_decay': 0.0, 'batch_size': 64}
+2026-10-15 18:05:24,327 [4/30] val_MAE=4.711 ep=2 {'use_clinical': False, 'hidden': 32, 'layers': 1, 'static_dim': 8, 'head_dim': 32, 'dropout': 0.0, 'lr': 0.0003, 'weight_decay': 0.0001, 'batch_size': 32}
+2026-10-15 18:05:25,660 [5/30] val_MAE=4.758 ep=2 {'use_clinical': False, 'hidden': 32, 'layers': 2, 'static_dim': 8, 'head_dim': 64, 'dropout': 0.3, 'lr': 0.003, 'weight_decay': 0.0, 'batch_size': 64}
+2026-10-15 18:05:33,431 [6/30] val_MAE=4.493 ep=47 {'use_clinical': True, 'hidden': 64, 'layers': 2, 'static_dim': 32, 'head_dim': 64, 'dropout': 0.2, 'lr': 0.003, 'weight_decay': 0.0, 'batch_size': 32}
+2026-10-15 18:05:34,797 [7/30] val_MAE=4.750 ep=11 {'use_clinical': True, 'hidden': 64, 'layers': 1, 'static_dim': 16, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.0001, 'batch_size': 64}
+2026-10-15 18:05:36,360 [8/30] val_MAE=4.742 ep=2 {'use_clinical': False, 'hidden': 64, 'layers': 2, 'static_dim': 8, 'head_dim': 32, 'dropout': 0.2, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 64}
+2026-10-15 18:05:38,259 [9/30] val_MAE=4.700 ep=23 {'use_clinical': True, 'hidden': 64, 'layers': 1, 'static_dim': 32, 'head_dim': 64, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.0001, 'batch_size': 64}
+2026-10-15 18:05:39,174 [10/30] val_MAE=4.710 ep=1 {'use_clinical': False, 'hidden': 64, 'layers': 1, 'static_dim': 32, 'head_dim': 32, 'dropout': 0.0, 'lr': 0.0003, 'weight_decay': 0.0, 'batch_size': 64}
+2026-10-15 18:05:40,195 [11/30] val_MAE=4.729 ep=5 {'use_clinical': False, 'hidden': 32, 'layers': 1, 'static_dim': 8, 'head_dim': 64, 'dropout': 0.2, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 64}
+2026-10-15 18:05:41,562 [12/30] val_MAE=4.746 ep=1 {'use_clinical': False, 'hidden': 64, 'layers': 2, 'static_dim': 8, 'head_dim': 32, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 64}
+2026-10-15 18:05:44,383 [13/30] val_MAE=4.709 ep=4 {'use_clinical': False, 'hidden': 64, 'layers': 2, 'static_dim': 16, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.003, 'weight_decay': 0.0001, 'batch_size': 32}
+2026-10-15 18:05:45,378 [14/30] val_MAE=4.704 ep=4 {'use_clinical': True, 'hidden': 16, 'layers': 1, 'static_dim': 32, 'head_dim': 16, 'dropout': 0.3, 'lr': 0.003, 'weight_decay': 0.0, 'batch_size': 64}
+2026-10-15 18:05:47,912 [15/30] val_MAE=4.702 ep=0 {'use_clinical': False, 'hidden': 64, 'layers': 2, 'static_dim': 32, 'head_dim': 32, 'dropout': 0.0, 'lr': 0.003, 'weight_decay': 0.001, 'batch_size': 32}
+2026-10-15 18:05:51,101 [16/30] val_MAE=4.731 ep=8 {'use_clinical': False, 'hidden': 64, 'layers': 2, 'static_dim': 8, 'head_dim': 32, 'dropout': 0.3, 'lr': 0.0003, 'weight_decay': 0.0001, 'batch_size': 32}
+2026-10-15 18:05:52,736 [17/30] val_MAE=4.734 ep=0 {'use_clinical': False, 'hidden': 64, 'layers': 1, 'static_dim': 32, 'head_dim': 16, 'dropout': 0.2, 'lr': 0.003, 'weight_decay': 0.001, 'batch_size': 32}
+2026-10-15 18:05:53,683 [18/30] val_MAE=4.679 ep=2 {'use_clinical': True, 'hidden': 32, 'layers': 1, 'static_dim': 32, 'head_dim': 64, 'dropout': 0.0, 'lr': 0.003, 'weight_decay': 0.0001, 'batch_size': 64}
+2026-10-15 18:05:57,735 [19/30] val_MAE=4.719 ep=23 {'use_clinical': True, 'hidden': 16, 'layers': 2, 'static_dim': 16, 'head_dim': 16, 'dropout': 0.0, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 32}
+2026-10-15 18:06:02,446 [20/30] val_MAE=4.590 ep=52 {'use_clinical': True, 'hidden': 64, 'layers': 2, 'static_dim': 8, 'head_dim': 64, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 64}
+2026-10-15 18:06:04,116 [21/30] val_MAE=4.705 ep=7 {'use_clinical': True, 'hidden': 32, 'layers': 2, 'static_dim': 8, 'head_dim': 64, 'dropout': 0.1, 'lr': 0.003, 'weight_decay': 0.0001, 'batch_size': 64}
+2026-10-15 18:06:08,562 [22/30] val_MAE=4.749 ep=25 {'use_clinical': False, 'hidden': 32, 'layers': 2, 'static_dim': 8, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.0001, 'batch_size': 32}
+2026-10-15 18:06:11,844 [23/30] val_MAE=4.717 ep=27 {'use_clinical': True, 'hidden': 64, 'layers': 1, 'static_dim': 8, 'head_dim': 16, 'dropout': 0.0, 'lr': 0.0003, 'weight_decay': 0.0, 'batch_size': 32}
+2026-10-15 18:06:13,505 [24/30] val_MAE=4.722 ep=5 {'use_clinical': False, 'hidden': 16, 'layers': 1, 'static_dim': 16, 'head_dim': 64, 'dropout': 0.3, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 32}
+2026-10-15 18:06:15,415 [25/30] val_MAE=4.723 ep=17 {'use_clinical': False, 'hidden': 16, 'layers': 2, 'static_dim': 16, 'head_dim': 16, 'dropout': 0.0, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 64}
+2026-10-15 18:06:20,119 [26/30] val_MAE=4.717 ep=27 {'use_clinical': False, 'hidden': 32, 'layers': 2, 'static_dim': 16, 'head_dim': 64, 'dropout': 0.0, 'lr': 0.003, 'weight_decay': 0.001, 'batch_size': 32}
+2026-10-15 18:06:21,857 [27/30] val_MAE=4.739 ep=8 {'use_clinical': True, 'hidden': 32, 'layers': 2, 'static_dim': 8, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.001, 'batch_size': 64}
+2026-10-15 18:06:23,637 [28/30] val_MAE=4.638 ep=2 {'use_clinical': True, 'hidden': 32, 'layers': 1, 'static_dim': 16, 'head_dim': 32, 'dropout': 0.1, 'lr': 0.0003, 'weight_decay': 0.0001, 'batch_size': 32}
+2026-10-15 18:06:25,048 [29/30] val_MAE=4.719 ep=14 {'use_clinical': True, 'hidden': 64, 'layers': 1, 'static_dim': 8, 'head_dim': 16, 'dropout': 0.1, 'lr': 0.001, 'weight_decay': 0.0001, 'batch_size': 64}
+2026-10-15 18:06:26,389 [30/30] val_MAE=4.541 ep=14 {'use_clinical': True, 'hidden': 32, 'layers': 1, 'static_dim': 8, 'head_dim': 32, 'dropout': 0.0, 'lr': 0.001, 'weight_decay': 0.0001, 'batch_size': 64}
+2026-10-15 18:06:26,395 Cấu hình tốt nhất theo Validation: {'use_clinical': True, 'hidden': 64, 'layers': 2, 'static_dim': 32, 'head_dim': 64, 'dropout': 0.2, 'lr': 0.003, 'weight_decay': 0.0, 'batch_size': 32}
+2026-10-15 18:06:29,387 seed 100: val_MAE=4.719
+2026-10-15 18:06:34,206 seed 101: val_MAE=4.603
+2026-10-15 18:06:38,079 seed 102: val_MAE=4.717
+2026-10-15 18:06:41,055 seed 103: val_MAE=4.702
+2026-10-15 18:06:44,117 seed 104: val_MAE=4.671
+2026-10-15 18:06:53,454 GMM chọn K=3 cov=full (theo log-likelihood Validation); ARI khởi tạo lại: mean=0.525 min=0.222
+2026-10-15 18:06:55,127 XONG sau 1.8 phút

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.claude/
+graphify-out/
+# Dữ liệu y tế: không công khai khi chưa có quyền. Đặt 3 file CSV vào data/ trên máy của bạn.
+data/*.csv
+data/processed/
+reports/predictions_*.csv
+# Repo tham khảo (122 MB, vượt giới hạn 100 MB/file nếu lỡ commit)
+CKD-Stage-Prediction-and-Treatment-AI-main/
+.env

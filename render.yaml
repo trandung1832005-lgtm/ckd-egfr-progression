@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ckd-egfr-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://<ten-du-an>.vercel.app   # thay bằng URL Vercel thật sau khi deploy frontend

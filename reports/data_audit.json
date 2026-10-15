@@ -1,0 +1,84 @@
+{
+  "fill_constants_detected_on_train": {
+    "eGFR(6M)": 30.455073,
+    "eGFR(12M)": 30.937709,
+    "eGFR(18M)": 31.267558,
+    "eGFR(24M)": 30.700429,
+    "eGFR(30M)": 31.201121,
+    "eGFR(36M)": 32.170319
+  },
+  "splits": {
+    "train": {
+      "rows": 796,
+      "cols": 25,
+      "duplicate_rows": 0,
+      "nan_in_raw_csv": 0,
+      "egfr_missing_after_fill_detection": {
+        "eGFR(0M)": 0.0,
+        "eGFR(6M)": 0.1771,
+        "eGFR(12M)": 0.2902,
+        "eGFR(18M)": 0.3719,
+        "eGFR(24M)": 0.4133,
+        "eGFR(30M)": 0.4761,
+        "eGFR(36M)": 0.5289
+      },
+      "rows_with_no_history": 0,
+      "rows_with_no_future_target": 286,
+      "rows_with_all_targets": 368,
+      "label_counts": {
+        "0": 618,
+        "1": 178
+      }
+    },
+    "val": {
+      "rows": 171,
+      "cols": 25,
+      "duplicate_rows": 0,
+      "nan_in_raw_csv": 0,
+      "egfr_missing_after_fill_detection": {
+        "eGFR(0M)": 0.0,
+        "eGFR(6M)": 0.1462,
+        "eGFR(12M)": 0.269,
+        "eGFR(18M)": 0.345,
+        "eGFR(24M)": 0.4094,
+        "eGFR(30M)": 0.462,
+        "eGFR(36M)": 0.5146
+      },
+      "rows_with_no_history": 0,
+      "rows_with_no_future_target": 59,
+      "rows_with_all_targets": 81,
+      "label_counts": {
+        "0": 128,
+        "1": 43
+      }
+    },
+    "test": {
+      "rows": 171,
+      "cols": 25,
+      "duplicate_rows": 0,
+      "nan_in_raw_csv": 0,
+      "egfr_missing_after_fill_detection": {
+        "eGFR(0M)": 0.0,
+        "eGFR(6M)": 0.2105,
+        "eGFR(12M)": 0.3216,
+        "eGFR(18M)": 0.4152,
+        "eGFR(24M)": 0.4854,
+        "eGFR(30M)": 0.5497,
+        "eGFR(36M)": 0.6257
+      },
+      "rows_with_no_history": 0,
+      "rows_with_no_future_target": 71,
+      "rows_with_all_targets": 63,
+      "label_counts": {
+        "0": 112,
+        "1": 59
+      }
+    }
+  },
+  "identical_rows_across_splits": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "note_patient_id": "Dataset không có cột định danh bệnh nhân: không kiểm tra được trùng bệnh nhân giữa các tập, chỉ kiểm tra được trùng nguyên dòng."
+}

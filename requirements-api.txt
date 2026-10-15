@@ -1,0 +1,11 @@
+# Môi trường SUY LUẬN (backend). Không có matplotlib/pytest. Phiên bản khớp artifact đã huấn luyện.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1
+numpy==2.5.4
+pandas==3.0.6
+scikit-learn==1.9.1
+scipy==1.18.1
+joblib==1.6.0
+fastapi==0.143.1
+uvicorn==0.54.0
+python-multipart==0.0.32

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CKD eGFR – GRU &amp; GMM</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Demo nghiên cứu: dự đoán eGFR theo thời gian bằng GRU và phân nhóm quỹ đạo bằng GMM.">
+<script src="vendor/plotly.min.js"></script>
+<style>
+:root{--bg:#f6f8fa;--card:#fff;--ink:#16202a;--mut:#5b6b7a;--line:#dbe2e8;--acc:#0b7a75;--acc2:#e07a1f;--bad:#b3261e;--ok:#1b7f3b;--warn:#8a5a00}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1519;--card:#172027;--ink:#e6edf2;--mut:#9fb0be;--line:#2a3843;--acc:#3cc3bb;--acc2:#f0a05a;--bad:#ff8a80;--ok:#6fd48c;--warn:#f2c36b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 16px 0;max-width:1100px;margin:0 auto}
+h1{font-size:1.25rem;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 12px;font-size:.9rem}
+nav{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);max-width:1100px;margin:0 auto;padding:0 16px}
+nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mut);padding:10px 12px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{color:var(--acc);border-color:var(--acc);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:16px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+label{display:block;font-size:.82rem;color:var(--mut);margin-bottom:3px}
+input,select{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+button.primary{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
+button.primary:disabled{opacity:.5;cursor:wait}
+button.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+.banner{padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--line);font-size:.9rem}
+.banner.ok{border-color:var(--ok);color:var(--ok)}.banner.bad{border-color:var(--bad);color:var(--bad)}.banner.warn{border-color:var(--warn);color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+.tw{overflow-x:auto}
+.mut{color:var(--mut)}.small{font-size:.82rem}
+.legend-note{font-size:.82rem;color:var(--mut)}
+.chip{display:inline-block;padding:2px 8px;border-radius:99px;border:1px solid var(--line);font-size:.78rem;margin-right:4px}
+.err{color:var(--bad);margin-top:8px}
+.loading{color:var(--mut)}
+footer{max-width:1100px;margin:0 auto;padding:8px 16px 28px;color:var(--mut);font-size:.8rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>Dự đoán tiến triển bệnh thận mạn qua eGFR theo thời gian</h1>
+  <p class="sub">Demo nghiên cứu · GRU dự đoán eGFR tương lai · GMM phân nhóm quỹ đạo · dữ liệu CKD-ROUTE</p>
+  <div id="status" class="banner warn">Đang kiểm tra trạng thái mô hình…</div>
+</header>
+<nav role="tablist" id="tabs">
+  <button role="tab" data-t="home" aria-selected="true">Tổng quan</button>
+  <button role="tab" data-t="pred" aria-selected="false">Dự đoán &amp; phân nhóm</button>
+  <button role="tab" data-t="res" aria-selected="false">Kết quả mô hình</button>
+  <button role="tab" data-t="data" aria-selected="false">Dữ liệu &amp; hạn chế</button>
+</nav>
+<main>
+
+<section id="home" class="on">
+  <div class="card"><h2>Mục tiêu</h2>
+    <p>Từ lịch sử eGFR của một bệnh nhân (mốc 0, 6, 12 tháng) cùng các biến lâm sàng ban đầu, hệ thống dự đoán eGFR tại 18, 24, 30 và 36 tháng, và xếp bệnh nhân vào một kiểu quỹ đạo eGFR.</p>
+  </div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div class="card"><h2>GRU – dự đoán chuỗi</h2>
+      <p>Mạng GRU đọc chuỗi [eGFR đã chuẩn hóa, cờ “có đo”, thời gian từ lần đo cuối]. Đầu ra là mức thay đổi so với eGFR quan sát gần nhất cho 4 mốc tương lai. Mất mát và chỉ số chỉ tính ở các mốc thực sự được đo.</p>
+      <p class="small mut" id="gruinfo"></p></div>
+    <div class="card"><h2>GMM – phân nhóm quỹ đạo</h2>
+      <p>Mô hình hỗn hợp Gaussian trên đặc trưng rút từ lịch sử 0–12 tháng (eGFR ban đầu, eGFR gần nhất, độ dốc). Không dùng eGFR tương lai làm đầu vào. Nhóm GMM <b>không</b> phải giai đoạn CKD hay chẩn đoán.</p>
+      <p class="small mut" id="gmminfo"></p></div>
+  </div>
+  <div class="card"><h2>Chức năng</h2>
+    <ul><li><b>Dự đoán &amp; phân nhóm</b>: nhập tay hoặc tải CSV, xem biểu đồ lịch sử + dự đoán, xác suất thuộc từng nhóm.</li>
+    <li><b>Kết quả mô hình</b>: MAE/RMSE/R² trên Validation và Test so với baseline; chỉ số AIC/BIC/log-likelihood của GMM.</li>
+    <li><b>Dữ liệu &amp; hạn chế</b>: kiểm định chất lượng dữ liệu và các giới hạn cần biết khi diễn giải.</li></ul>
+  </div>
+</section>
+
+<section id="pred">
+  <div class="card"><h2>Nhập dữ liệu</h2>
+    <p class="small mut">Chỉ cần eGFR tại 0M. Mốc 6M/12M để trống nếu <b>không được đo</b> (không điền số thay thế). Đơn vị eGFR: mL/phút/1,73 m².</p>
+    <form id="form" autocomplete="off">
+      <div class="grid" id="f-egfr"></div>
+      <h2 style="margin-top:16px" id="clin-h">Biến lâm sàng ban đầu</h2>
+      <div class="grid" id="f-clin"></div>
+      <p style="margin-top:14px"><button class="primary" id="go" type="submit">Dự đoán</button>
+      <span id="busy" class="loading" hidden> Đang xử lý…</span></p>
+      <div id="err" class="err" role="alert"></div>
+    </form>
+  </div>
+
+  <div id="out" hidden>
+    <div class="card"><h2>Dự đoán eGFR bằng GRU</h2>
+      <div id="warns"></div>
+      <div id="ch-pred" style="height:340px"></div>
+      <p class="legend-note">Đường liền xanh = eGFR bạn đã nhập (lịch sử). Đường đứt cam = giá trị <b>do mô hình dự đoán</b>, không phải số đo thực.</p>
+      <div class="tw"><table id="t-pred"></table></div>
+    </div>
+    <div class="card"><h2>Phân nhóm quỹ đạo bằng GMM</h2>
+      <p id="gmm-text"></p>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+        <div id="ch-prob" style="height:280px"></div>
+        <div id="ch-traj" style="height:280px"></div>
+      </div>
+      <div class="tw"><table id="t-prof"></table></div>
+      <p class="legend-note">Bảng mô tả các nhóm tính trên tập Train. “Thay đổi eGFR tương lai” và “tỷ lệ CKD progression” chỉ dùng để mô tả nhóm sau khi phân nhóm, không dùng làm đầu vào.</p>
+    </div>
+  </div>
+
+  <div class="card"><h2>Dự đoán hàng loạt từ file CSV</h2>
+    <p class="small mut">Cần các cột đúng tên như dữ liệu huấn luyện (tối đa 2000 dòng, 2 MB). <a href="#" id="tpl">Tải file mẫu (chỉ có tiêu đề cột)</a></p>
+    <input type="file" id="csv" accept=".csv,text/csv"> <button class="ghost" id="csvgo" type="button" style="margin-top:8px">Dự đoán file</button>
+    <div id="csverr" class="err"></div><div class="tw" id="csvout" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="res"><div id="res-body" class="loading">Đang tải kết quả…</div></section>
+<section id="data"><div id="data-body" class="loading">Đang tải…</div></section>
+</main>
+<footer>Hệ thống chỉ phục vụ nghiên cứu và minh họa, không thay thế chẩn đoán hay tư vấn của chuyên gia y tế. Kết quả mô hình không phải chẩn đoán đã được kiểm chứng lâm sàng.</footer>
+
+<script src="config.js"></script>
+<script>
+const API = (window.CKD_API_URL || "").replace(/\/$/, "");
+const $ = s => document.querySelector(s);
+const fmt = (x, d = 2) => x == null || Number.isNaN(x) ? "–" : Number(x).toFixed(d);
+let META = null, RES = null;
+const LABELS = {"gender":"Giới tính (mã dữ liệu)","age":"Tuổi","hypertension":"Tăng huyết áp","prevalence of CVD":"Bệnh tim mạch","diabetes":"Đái tháo đường",
+ "use of RAASi":"Dùng thuốc ức chế RAAS","use of CCB":"Dùng chẹn kênh canxi","use of diuretics":"Dùng thuốc lợi tiểu","etiology of CKD":"Nguyên nhân CKD (mã dữ liệu)",
+ "SBP":"Huyết áp tâm thu (mmHg)","BMI":"BMI (kg/m²)","Hb":"Hemoglobin (g/dL)","Alb":"Albumin (g/dL)","Cr":"Creatinine (mg/dL)","UPCR":"UPCR (g/gCr)","proteinuria":"Protein niệu","CKD_stage":"CKD stage (lúc ban đầu)"};
+const BIN = ["gender","hypertension","prevalence of CVD","diabetes","use of RAASi","use of CCB","use of diuretics","proteinuria"];
+
+async function api(path, opt) {
+  let r;
+  try { r = await fetch(API + path, opt); } catch { throw new Error("Không kết nối được backend. Vui lòng thử lại sau."); }
+  let j = null; try { j = await r.json(); } catch {}
+  if (!r.ok) throw new Error((j && (j.detail || j.error)) || `Lỗi ${r.status}`);
+  return j;
+}
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === b.dataset.t));
+  window.dispatchEvent(new Event("resize"));
+});
+
+function buildForm() {
+  const eg = $("#f-egfr"); eg.innerHTML = "";
+  [["0M","bắt buộc"],["6M","để trống nếu không đo"],["12M","để trống nếu không đo"]].forEach(([m,h]) => {
+    const [lo, hi] = META.input_ranges[`eGFR(${m})`];
+    eg.insertAdjacentHTML("beforeend", `<div><label>eGFR ${m} <span class="mut">(${h})</span></label><input name="egfr_${m}" type="number" step="any" min="0.1" max="200" ${m==="0M"?"required":""} placeholder="khoảng huấn luyện ${lo.toFixed(0)}–${hi.toFixed(0)}"></div>`);
+  });
+  const cl = $("#f-clin"); cl.innerHTML = "";
+  $("#clin-h").hidden = !META.use_clinical;
+  META.clinical_columns.forEach(c => {
+    const [lo, hi] = META.input_ranges[c];
+    let inner;
+    if (BIN.includes(c)) {
+      const opts = c === "gender" ? [[1,"1"],[2,"2"]] : [[0,"Không (0)"],[1,"Có (1)"]];
+      inner = `<select name="${c}" required><option value="">–</option>${opts.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
+    } else if (c === "etiology of CKD") {
+      inner = `<select name="${c}" required><option value="">–</option>${META.etiology_levels.map(v => `<option value="${v}">Mã ${v}</option>`).join("")}</select>`;
+    } else if (c === "CKD_stage") {
+      const vals = []; for (let v = Math.round(lo); v <= Math.round(hi); v++) vals.push(v);
+      inner = `<select name="${c}" required><option value="">–</option>${vals.map(v => `<option>${v}</option>`).join("")}</select>`;
+    } else inner = `<input name="${c}" type="number" step="any" min="0" required placeholder="${lo.toFixed(1)}–${hi.toFixed(1)}">`;
+    cl.insertAdjacentHTML("beforeend", `<div><label>${LABELS[c] || c}</label>${inner}</div>`);
+  });
+}
+
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  $("#err").textContent = ""; $("#go").disabled = true; $("#busy").hidden = false;
+  const fd = new FormData(e.target);
+  const egfr = {}; ["0M","6M","12M"].forEach(m => egfr[m] = fd.get("egfr_"+m) || null);
+  const clinical = {}; META.clinical_columns.forEach(c => clinical[c] = fd.get(c));
+  try {
+    const r = await api("/api/predict", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({egfr, clinical})});
+    render(r);
+  } catch (ex) { $("#err").textContent = ex.message; $("#out").hidden = true; }
+  finally { $("#go").disabled = false; $("#busy").hidden = true; }
+};
+
+function render(r) {
+  $("#out").hidden = false;
+  $("#warns").innerHTML = r.warnings.map(w => `<div class="banner warn">${w}</div>`).join("");
+  const hx = [], hy = [];
+  Object.entries(r.history).forEach(([m,v]) => { if (v != null) { hx.push(parseInt(m)); hy.push(v); } });
+  const fx = r.forecast.map(f => f.month), fy = r.forecast.map(f => f.egfr);
+  const lay = (t, extra={}) => Object.assign({margin:{t:30,r:10,b:45,l:50}, paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)", font:{color:getComputedStyle(document.body).color}, title:{text:t,font:{size:13}}}, extra);
+  Plotly.newPlot("ch-pred", [
+    {x:hx,y:hy,mode:"lines+markers",name:"Lịch sử (đã nhập)",line:{color:"#0b7a75"}},
+    {x:[hx[hx.length-1],...fx],y:[hy[hy.length-1],...fy],mode:"lines+markers",name:"Dự đoán GRU",line:{color:"#e07a1f",dash:"dash"}}
+  ], lay("eGFR theo thời gian",{xaxis:{title:"Tháng"},yaxis:{title:"eGFR"},legend:{orientation:"h",y:-0.25}}), {responsive:true,displaylogo:false});
+  $("#t-pred").innerHTML = "<tr><th>Mốc</th><th>Loại</th><th>eGFR</th></tr>" +
+    hx.map((m,i) => `<tr><td>${m}M</td><td>Nhập vào</td><td>${fmt(hy[i])}</td></tr>`).join("") +
+    r.forecast.map(f => `<tr><td>${f.month}M</td><td>Dự đoán</td><td>${fmt(f.egfr)}</td></tr>`).join("");
+
+  const g = r.gmm, K = g.probabilities.length, names = g.probabilities.map((_,i) => "Nhóm "+(i+1));
+  const f = Object.entries(g.features).map(([k,v]) => `${k}: <b>${fmt(v,1)}</b>`).join(" · ");
+  $("#gmm-text").innerHTML = `Nhóm có xác suất cao nhất: <b>Nhóm ${g.cluster}</b> (${fmt(g.probabilities[g.cluster-1]*100,1)}%). Đặc trưng lịch sử: ${f}`;
+  Plotly.newPlot("ch-prob", [{x:names,y:g.probabilities.map(p=>p*100),type:"bar",marker:{color:g.probabilities.map((_,i)=>i===g.cluster-1?"#0b7a75":"#9fb0be")}}],
+    lay("Xác suất thuộc từng nhóm (%)",{yaxis:{range:[0,100]}}), {responsive:true,displaylogo:false});
+  const traces = [];
+  for (let k = 1; k <= K; k++) {
+    const rows = RES.gmm_trajectories.filter(t => t.Tap === "train" && t.Nhom === k && t.egfr_tb != null && t.n_quan_sat >= 20);
+    traces.push({x:rows.map(t=>t.thang),y:rows.map(t=>t.egfr_tb),mode:"lines",name:"Nhóm "+k+" (TB Train, n≥20/mốc)",line:{width:k===g.cluster?4:1.5}});
+  }
+  traces.push({x:hx,y:hy,mode:"lines+markers",name:"Bệnh nhân này",line:{color:"#000",dash:"dot"}});
+  Plotly.newPlot("ch-traj", traces, lay("Quỹ đạo eGFR trung bình các nhóm",{xaxis:{title:"Tháng"},yaxis:{title:"eGFR"},legend:{font:{size:10}}}), {responsive:true,displaylogo:false});
+  profileTable("#t-prof", "train");
+  $("#out").scrollIntoView({behavior:"smooth"});
+}
+
+function profileTable(sel, tap) {
+  const rows = RES.gmm_profile.filter(r => r.Tap === tap);
+  $(sel).innerHTML = "<tr><th>Nhóm</th><th>N</th><th>Tỷ lệ</th><th>eGFR 0M (TB)</th><th>Độ dốc (/năm)</th><th>Thay đổi eGFR tương lai (TB)</th><th>CKD progression</th><th>CKD stage (TB)</th></tr>" +
+   rows.map(r => `<tr><td>Nhóm ${r.Nhom}</td><td>${r.N}</td><td>${fmt(r.ty_le*100,1)}%</td><td>${fmt(r.egfr_0M_tb,1)}</td><td>${fmt(r.do_doc_tb,2)}</td><td>${fmt(r.thay_doi_egfr_tuong_lai_tb,2)} <span class="mut">(n=${r.n_co_theo_doi_tuong_lai})</span></td><td>${fmt(r.ty_le_CKD_progression*100,1)}%</td><td>${fmt(r.CKD_stage_tb,2)}</td></tr>`).join("");
+}
+
+// ---- CSV ----
+$("#tpl").onclick = e => { e.preventDefault();
+  const cols = ["eGFR(0M)","eGFR(6M)","eGFR(12M)",...META.clinical_columns];
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([cols.join(",")+"\n"],{type:"text/csv"})); a.download = "mau_nhap_lieu.csv"; a.click(); };
+$("#csvgo").onclick = async () => {
+  $("#csverr").textContent = ""; $("#csvout").innerHTML = "";
+  const f = $("#csv").files[0]; if (!f) { $("#csverr").textContent = "Hãy chọn một file CSV."; return; }
+  const fd = new FormData(); fd.append("file", f);
+  try {
+    const r = await api("/api/predict-csv", {method:"POST", body: fd});
+    const keys = [...new Set(r.rows.flatMap(x => Object.keys(x)))];
+    $("#csvout").innerHTML = "<table><tr>" + keys.map(k=>`<th>${k}</th>`).join("") + "</tr>" +
+      r.rows.map(x => "<tr>" + keys.map(k => `<td>${x[k] ?? ""}</td>`).join("") + "</tr>").join("") + "</table>";
+  } catch (ex) { $("#csverr").textContent = ex.message; }
+};
+
+// ---- kết quả ----
+function metricsTable(rows, model) {
+  const r = rows.filter(x => x.Mo_hinh === model);
+  return r.map(x => `<tr><td>${x.Moc}</td><td>${x.N}</td><td>${fmt(x.MAE)}</td><td>${fmt(x.RMSE)}</td><td>${fmt(x.R2,3)}</td></tr>`).join("");
+}
+function renderResults() {
+  const reg = RES.regression, models = [...new Set(reg.map(r => r.Mo_hinh))];
+  let h = "";
+  ["test","val"].forEach(sp => {
+    h += `<div class="card"><h2>GRU và baseline – ${sp==="test"?"Test (đánh giá cuối cùng)":"Validation (dùng để chọn mô hình)"}</h2><div class="tw"><table><tr><th>Mô hình</th><th>Mốc</th><th>N</th><th>MAE</th><th>RMSE</th><th>R²</th></tr>` +
+      models.map(m => reg.filter(r => r.Mo_hinh===m && r.Tap===sp).map(x => `<tr><td>${x.Moc==="Tổng thể"?"<b>"+m+"</b>":""}</td><td>${x.Moc}</td><td>${x.N}</td><td>${fmt(x.MAE)}</td><td>${fmt(x.RMSE)}</td><td>${fmt(x.R2,3)}</td></tr>`).join("")).join("") +
+      `</table></div><p class="legend-note">Đơn vị MAE/RMSE: mL/phút/1,73 m². Chỉ tính ở các mốc thực sự được đo.</p></div>`;
+  });
+  const t = RES.gru_seeds;
+  if (t.length) {
+    const mean = a => a.reduce((x,y)=>x+y,0)/a.length, sd = a => Math.sqrt(mean(a.map(v=>(v-mean(a))**2)));
+    h += `<div class="card"><h2>Độ biến thiên theo seed (GRU)</h2><p>${t.length} seed, cùng siêu tham số. MAE Validation ${fmt(mean(t.map(x=>x.val_MAE)),3)} ± ${fmt(sd(t.map(x=>x.val_MAE)),3)}; MAE Test ${fmt(mean(t.map(x=>x.test_MAE)),3)} ± ${fmt(sd(t.map(x=>x.test_MAE)),3)}. Seed dùng trong demo được chọn theo Validation, không theo Test.</p></div>`;
+  }
+  const gm = RES.gmm_metrics;
+  h += `<div class="card"><h2>GMM (K=${gm[0].K}, covariance=${gm[0].covariance})</h2><div class="tw"><table><tr><th>Tập</th><th>N</th><th>Log-likelihood TB</th><th>AIC</th><th>BIC</th></tr>` +
+    gm.map(x => `<tr><td>${x.Tap}</td><td>${x.N}</td><td>${fmt(x.loglik_mean,3)}</td><td>${fmt(x.AIC,1)}</td><td>${fmt(x.BIC,1)}</td></tr>`).join("") +
+    `</table></div><p class="legend-note">Độ ổn định khi khởi tạo lại (ARI giữa các lần fit): TB ${fmt(gm[0].ARI_on_restart_mean,3)}, thấp nhất ${fmt(gm[0].ARI_on_restart_min,3)}. AIC/BIC/log-likelihood dùng để so sánh cấu hình GMM; <b>không</b> so sánh trực tiếp với MAE của GRU.</p></div>`;
+  h += `<div class="card"><h2>Mô tả các nhóm GMM</h2><div class="tw"><table id="rp"></table></div></div>`;
+  $("#res-body").innerHTML = h; $("#res-body").className = "";
+  profileTable("#rp", "test");
+  $("#rp").insertAdjacentHTML("beforebegin", "");
+}
+function renderData() {
+  const a = RES.data_audit; if (!a) { $("#data-body").textContent = "Chưa có báo cáo dữ liệu."; return; }
+  const sp = a.splits;
+  let h = `<div class="card"><h2>Kiểm định dữ liệu</h2><div class="tw"><table><tr><th>Tập</th><th>Dòng</th><th>Trùng dòng</th><th>Không có mốc đích</th><th>Đủ 4 mốc đích</th><th>Label 0 / 1</th></tr>` +
+    Object.entries(sp).map(([k,v]) => `<tr><td>${k}</td><td>${v.rows}</td><td>${v.duplicate_rows}</td><td>${v.rows_with_no_future_target}</td><td>${v.rows_with_all_targets}</td><td>${v.label_counts["0"]} / ${v.label_counts["1"]}</td></tr>`).join("") +
+    `</table></div></div>
+  <div class="card"><h2>Tỷ lệ eGFR chưa được quan sát (Train)</h2><div class="tw"><table><tr>${Object.keys(sp.train.egfr_missing_after_fill_detection).map(c=>`<th>${c}</th>`).join("")}</tr><tr>${Object.values(sp.train.egfr_missing_after_fill_detection).map(v=>`<td>${fmt(v*100,1)}%</td>`).join("")}</tr></table></div>
+  <p class="legend-note">File CSV gốc không có ô trống, nhưng mỗi cột eGFR (trừ 0M) có một giá trị lặp rất nhiều lần (ví dụ ${fmt(Object.values(a.fill_constants_detected_on_train)[0],3)}); đây là dấu hiệu điền thiếu bằng trung vị. Hệ thống coi các giá trị đó là <b>chưa quan sát</b> và không tính vào loss hay chỉ số.</p></div>
+  <div class="card"><h2>Hạn chế cần biết</h2><ul>
+   <li>${a.note_patient_id}</li>
+   <li>Tỷ lệ chưa quan sát tăng dần theo thời gian (đến ~53% ở 36M trên Train) → chỉ số ở mốc xa dựa trên nhóm bệnh nhân còn theo dõi, có thể lệch.</li>
+   <li>Quy ước mã của giới tính, nguyên nhân CKD được giữ nguyên như file dữ liệu; hệ thống không diễn giải ý nghĩa y khoa của các mã này.</li>
+   <li>Nhóm GMM mô tả kiểu quỹ đạo thống kê trên mẫu này, không phải giai đoạn CKD và không phải chẩn đoán.</li>
+   <li>Kết quả chỉ phục vụ nghiên cứu và minh họa.</li></ul></div>`;
+  $("#data-body").innerHTML = h; $("#data-body").className = "";
+}
+
+(async function init() {
+  const st = $("#status");
+  try {
+    const h = await api("/api/health");
+    if (!h.model_ready) { st.className = "banner bad"; st.textContent = "Mô hình chưa sẵn sàng: " + (h.detail || ""); $("#go").disabled = true; return; }
+    [META, RES] = await Promise.all([api("/api/meta"), api("/api/results")]);
+    st.className = "banner ok"; st.textContent = "Mô hình GRU và GMM đã sẵn sàng.";
+    const hp = META.hyperparameters;
+    $("#gruinfo").textContent = `Cấu hình: hidden=${hp.hidden}, layers=${hp.layers}, dropout=${hp.dropout}, ${META.use_clinical ? "có" : "không"} dùng biến lâm sàng.`;
+    $("#gmminfo").textContent = `K=${META.gmm.K} thành phần, covariance=${META.gmm.covariance}. Đặc trưng: ${META.gmm.features.join("; ")}.`;
+    buildForm(); renderResults(); renderData();
+  } catch (ex) { st.className = "banner bad"; st.textContent = ex.message; $("#go").disabled = true; }
+})();
+</script>
+</body>
+</html>

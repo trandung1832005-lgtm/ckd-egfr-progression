@@ -1,0 +1,178 @@
+{
+  "versions": {
+    "torch": "2.14.1+cpu",
+    "sklearn": "1.9.1",
+    "numpy": "2.5.4"
+  },
+  "history_months": [
+    0,
+    6,
+    12
+  ],
+  "future_months": [
+    18,
+    24,
+    30,
+    36
+  ],
+  "use_clinical": true,
+  "hyperparameters": {
+    "use_clinical": true,
+    "hidden": 64,
+    "layers": 2,
+    "static_dim": 32,
+    "head_dim": 64,
+    "dropout": 0.2,
+    "lr": 0.003,
+    "weight_decay": 0.0,
+    "batch_size": 32
+  },
+  "selected_seed": 101,
+  "best_epoch": 23,
+  "n_search_trials": 30,
+  "gmm": {
+    "K": 3,
+    "covariance": "full",
+    "features": [
+      "eGFR ban đầu (0M)",
+      "eGFR gần nhất (≤12M)",
+      "Độ dốc eGFR 0–12M (mL/ph/1.73m²/năm)"
+    ]
+  },
+  "clinical_columns": [
+    "age",
+    "SBP",
+    "BMI",
+    "Hb",
+    "Alb",
+    "Cr",
+    "UPCR",
+    "CKD_stage",
+    "gender",
+    "hypertension",
+    "prevalence of CVD",
+    "diabetes",
+    "use of RAASi",
+    "use of CCB",
+    "use of diuretics",
+    "proteinuria",
+    "etiology of CKD"
+  ],
+  "input_ranges": {
+    "age": [
+      21.0,
+      94.0
+    ],
+    "SBP": [
+      66.0,
+      234.0
+    ],
+    "BMI": [
+      14.4675925925926,
+      43.14595660749507
+    ],
+    "Hb": [
+      5.9,
+      19.0
+    ],
+    "Alb": [
+      1.4,
+      5.2
+    ],
+    "Cr": [
+      0.51,
+      12.38
+    ],
+    "UPCR": [
+      0.0,
+      20.18292682926829
+    ],
+    "CKD_stage": [
+      2.0,
+      5.0
+    ],
+    "gender": [
+      1.0,
+      2.0
+    ],
+    "hypertension": [
+      0.0,
+      1.0
+    ],
+    "prevalence of CVD": [
+      0.0,
+      1.0
+    ],
+    "diabetes": [
+      0.0,
+      1.0
+    ],
+    "use of RAASi": [
+      0.0,
+      1.0
+    ],
+    "use of CCB": [
+      0.0,
+      1.0
+    ],
+    "use of diuretics": [
+      0.0,
+      1.0
+    ],
+    "proteinuria": [
+      0.0,
+      1.0
+    ],
+    "etiology of CKD": [
+      1.0,
+      4.0
+    ],
+    "eGFR(0M)": [
+      3.447744794174665,
+      89.98192630574134
+    ],
+    "eGFR(6M)": [
+      3.09106329482371,
+      111.6139966360274
+    ],
+    "eGFR(12M)": [
+      3.3551615140269,
+      86.76993436118109
+    ],
+    "eGFR(18M)": [
+      2.934257806791036,
+      98.24676612834176
+    ],
+    "eGFR(24M)": [
+      2.375881495611137,
+      93.20551250406916
+    ],
+    "eGFR(30M)": [
+      3.27347344622923,
+      95.46561635770402
+    ],
+    "eGFR(36M)": [
+      3.50175518968199,
+      105.2713745708371
+    ]
+  },
+  "etiology_levels": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "fill_constants": {
+    "eGFR(6M)": 30.455073,
+    "eGFR(12M)": 30.937709,
+    "eGFR(18M)": 31.267558,
+    "eGFR(24M)": 30.700429,
+    "eGFR(30M)": 31.201121,
+    "eGFR(36M)": 32.170319
+  },
+  "rows": {
+    "train": 796,
+    "val": 171,
+    "test": 171
+  }
+}
