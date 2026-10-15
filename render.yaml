@@ -3,6 +3,7 @@ services:
     name: ckd-egfr-api
     runtime: docker
     plan: free
+    region: singapore                  # cùng vùng với Neon (Singapore) để giảm độ trễ
     healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
